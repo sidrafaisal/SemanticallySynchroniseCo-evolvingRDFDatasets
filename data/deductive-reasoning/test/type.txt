@@ -1,0 +1,2 @@
+http://dbpedia.org/resource/Iram	http://dbpedia.org/ontology/Person	1
+http://dbpedia.org/resource/Faisal	http://dbpedia.org/ontology/Person	1

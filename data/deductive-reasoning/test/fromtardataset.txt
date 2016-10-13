@@ -1,0 +1,1 @@
+http://dbpedia.org/resource/Book1	http://schema.org/publisher	http://dbpedia.org/resource/Sidra
