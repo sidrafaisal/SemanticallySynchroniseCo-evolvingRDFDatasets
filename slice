@@ -1,2 +1,3 @@
 <http://dbpedia.org/resource/SidraFaisal> <http://www.w3.org/2002/07/owl#differentFrom> <http://dbpedia.org/resource/Sidra> .
-<http://dbpedia.org/resource/Book1> <http://dbpedia.org/ontology/firstPublisher> <http://dbpedia.org/resource/Sidra> .
+<http://dbpedia.org/resource/Book1> <http://dbpedia.org/ontology/firstPublisher> <http://dbpedia.org/resource/SidraFaisal> .
+<http://dbpedia.org/resource/SidraAslam> <http://www.w3.org/2002/07/owl#differentFrom> <http://dbpedia.org/resource/SidraFaisal> .

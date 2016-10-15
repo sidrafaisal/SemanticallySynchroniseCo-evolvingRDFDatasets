@@ -1,2 +1,1 @@
-<http://dbpedia.org/resource/Book1> <http://schema.org/publisher> <http://dbpedia.org/resource/SidraFaisal> .
-<http://dbpedia.org/resource/Sidra> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://schema.org/Library> .
+<http://dbpedia.org/resource/Book1> <http://schema.org/publisher> <http://dbpedia.org/resource/SidraAslam> .

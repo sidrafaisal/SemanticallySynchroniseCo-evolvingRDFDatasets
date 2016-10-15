@@ -299,17 +299,12 @@ def create_rules (m, weightMap) {
 */
 	//equivalent property
 	//7.1
-	m.add rule : (eqvproperty(A,B,UID) & fromDataset(S, A, N) & fromSrcDataset(S, B, N) & fromTarDataset(S, B, O)) >> relatedTo(S, B, N), weight : 10;
-	m.add rule : (eqvproperty(A,B,UID) & fromDataset(S, A, N) & fromTarDataset(S, B, N) & fromSrcDataset(S, B, O)) >> relatedTo(S, B, N), weight : 10;
-/*	m.add rule : (eqvproperty(A,B) & fromDataset(S, A, N) & fromSrcDataset(S, B, M) & fromTarDataset(S, B, O)) >> relatedTo(S, B, N), weight : 10;	
-	m.add rule : (eqvproperty(A,B) & fromDataset(S, A, N) & fromTarDataset(S, B, M) & fromSrcDataset(S, B, O)) >> relatedTo(S, B, N), weight : 10;
+	m.add rule : (eqvproperty(A,B,UID) & fromDataset(S, A, N) & fromSrcDataset(S, B, N) & fromTarDataset(S, B, O) & nsame(N,O)) >> relatedTo(S, B, N), weight : weightMap["ep1"];	
+	m.add rule : (eqvproperty(A,B,UID) & fromDataset(S, A, N) & fromTarDataset(S, B, N) & fromSrcDataset(S, B, O) & nsame(N,O)) >> relatedTo(S, B, N), weight : weightMap["ep2"];	
+	m.add rule : (eqvproperty(A,B,UID) & fromDataset(S, A, N) & fromSrcDataset(S, B, M) & fromTarDataset(S, B, O) & nsame(N,M) & nsame(N,O) & nsame(M,O)) >> relatedTo(S, B, N), weight : weightMap["ep3"];		
+	m.add rule : (eqvproperty(A,B,UID) & fromDataset(S, A, N) & fromTarDataset(S, B, M) & fromSrcDataset(S, B, O) & nsame(N,M) & nsame(N,O) & nsame(M,O)) >> relatedTo(S, B, N), weight : weightMap["ep4"];	
 
-	//7.2 	
-	m.add rule : (subpropertyOf(A,B) & fromDataset(S, B, N) & fromSrcDataset(S, A, N) & fromTarDataset(S, A, O)) >> relatedTo(S, A, N), weight : 10;
-	m.add rule : (subpropertyOf(A,B) & fromDataset(S, B, N) & fromTarDataset(S, A, N) & fromSrcDataset(S, A, O)) >> relatedTo(S, A, N), weight : 10;
-	m.add rule : (subpropertyOf(A,B) & fromDataset(S, B, N) & fromSrcDataset(S, A, M) & fromTarDataset(S, A, O)) >> relatedTo(S, A, N), weight : 10;
-	m.add rule : (subpropertyOf(A,B) & fromDataset(S, B, N) & fromTarDataset(S, A, M) & fromSrcDataset(S, A, O)) >> relatedTo(S, A, N), weight : 10;
-
+/*
 	//7.3
 	m.add rule : (eqvproperty(C,B) & subpropertyOf(A,B) & fromDataset(S, C, N) & fromSrcDataset(S, A, N) 
 		& fromTarDataset(S, A, O)) >> relatedTo(S, A, N), weight : 10;
@@ -333,6 +328,13 @@ def create_rules (m, weightMap) {
 	m.add rule : (difffrom(M, O) & fromTarDataset(S, A, M) & fromSrcDataset(S, A, O)) >> relatedTo(S, A, M), weight : 10;
 	m.add rule : (difffrom(M, O) & fromTarDataset(S, A, M) & fromSrcDataset(S, A, O)) >> relatedTo(S, A, O), weight : 10;
 */
+	//9.1
+	//subproperty
+	m.add rule : (subpropertyOf(A,B,UID) & fromDataset(S, B, N) & fromSrcDataset(S, A, N) & fromTarDataset(S, A, O) & nsame(N,O)) >> relatedTo(S, A, N), weight : 10;
+	m.add rule : (subpropertyOf(A,B,UID) & fromDataset(S, B, N) & fromTarDataset(S, A, N) & fromSrcDataset(S, A, O) & nsame(N,O)) >> relatedTo(S, A, N), weight : 10;
+	m.add rule : (subpropertyOf(A,B,UID) & fromDataset(S, B, N) & fromSrcDataset(S, A, M) & fromTarDataset(S, A, O) & nsame(N,M) & nsame(N,O) & nsame(M,O)) >> relatedTo(S, A, N), weight : 10;
+	m.add rule : (subpropertyOf(A,B,UID) & fromDataset(S, B, N) & fromTarDataset(S, A, M) & fromSrcDataset(S, A, O) & nsame(N,M) & nsame(N,O) & nsame(M,O)) >> relatedTo(S, A, N), weight : 10;
+
 	// constraints
 	m.add PredicateConstraint.PartialFunctional , on : type;
 //	m.add PredicateConstraint.PartialFunctional , on : relatedTo; support only binary predicates
