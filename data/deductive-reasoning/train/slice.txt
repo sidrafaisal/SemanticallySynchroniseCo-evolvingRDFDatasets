@@ -1,9 +1,0 @@
-Faisal	wife	Sidra	http://dbpedia.org/resource/	http://dbpedia.org/ontology/	http://dbpedia.org/resource/
-Faisal	P569	Jan	http://dbpedia.org/resource/	http://wikidata.dbpedia.org/resource/	-
-Faisal	type	Person	http://dbpedia.org/resource/	http://www.w3.org/1999/02/22-rdf-syntax-ns#	http://dbpedia.org/ontology/
-FaisalAbbas	wife	Sidra	http://dbpedia.org/resource/	http://dbpedia.org/ontology/	http://dbpedia.org/resource/
-Aslam	wife	Samina	http://dbpedia.org/resource/	http://dbpedia.org/ontology/	http://dbpedia.org/resource/
-Iram	birthDate	Jan	http://dbpedia.org/resource/	http://dbpedia.org/ontology/	-
-Iram	type	Person	http://dbpedia.org/resource/	http://www.w3.org/1999/02/22-rdf-syntax-ns#	http://dbpedia.org/ontology/
-Sidra	P569	Jan	http://dbpedia.org/resource/	http://wikidata.dbpedia.org/resource/	-
-Jean	birthDate	Jan	http://dbpedia.org/resource/	http://dbpedia.org/ontology/	-

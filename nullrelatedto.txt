@@ -1,0 +1,4 @@
+http://dbpedia.org/resource/Faisal	http://www.w3.org/1999/02/22-rdf-syntax-ns#type	http://dbpedia.org/ontology/Person	1
+http://dbpedia.org/resource/Faisal	http://dbpedia.org/ontology/wife	http://dbpedia.org/resource/Sidra	1
+http://dbpedia.org/resource/Sidra	http://www.w3.org/1999/02/22-rdf-syntax-ns#type	http://dbpedia.org/ontology/Person	1
+http://dbpedia.org/resource/SidraAslam	http://www.w3.org/1999/02/22-rdf-syntax-ns#type	http://dbpedia.org/ontology/Person	1

@@ -6,7 +6,9 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.Scanner;
+import java.util.Set;
 
 import org.apache.jena.ontology.FunctionalProperty;
 import org.apache.jena.ontology.HasValueRestriction;
@@ -48,6 +50,7 @@ public class LoadOntology  {
 	private static String ont_filename;
 	private static String trainDir;
 	private static String testDir;
+	public static OntModel omodel;
 	private static String type = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type";
 	private static String sameas = "http://www.w3.org/2002/07/owl#sameAs";
 
@@ -57,45 +60,56 @@ public class LoadOntology  {
 
 	static void populateFiles (String f, String dir) {
 		ont_filename = f;
+		trainDir = dir+"train"+java.io.File.separator;
+		testDir = dir+"test"+java.io.File.separator;
+		omodel = ModelFactory.createOntologyModel(OntModelSpec.OWL_MEM_MICRO_RULE_INF);
+		InputStream ins = FileManager.get().open(ont_filename);
+
+		if (ins == null)
+			throw new IllegalArgumentException("File: "+ont_filename+" not found");
+		omodel.read(ins, null);
+	
 		Date loadingfiles_time = new Date();
-		System.out.println("Do you want to reparse ontology and populate truth values");
+		System.out.println("Do you want to reparse ontology");
 		Scanner reader = new Scanner(System.in); 
 		System.out.println("Enter y/n: ");
 		String n = reader.next();
 
 		if (n.equals("y")) {
-			trainDir = dir+"train"+java.io.File.separator;
-			testDir = dir+"test"+java.io.File.separator;
-			OntModel omodel = ModelFactory.createOntologyModel(OntModelSpec.OWL_MEM_MICRO_RULE_INF);
-			InputStream ins = FileManager.get().open(ont_filename);
-
-			if (ins == null)
-				throw new IllegalArgumentException("File: "+ont_filename+" not found");
-			omodel.read(ins, null);
-
 			try {
-				System.out.println("Parsing ontology....");
-				
+				System.out.println("Parsing ontology....");			
 				getPropertiesInfo(omodel);				
 				getClassesInfo(omodel);
 				getRestrictions(omodel);
-
-				System.out.println("Populating truth values....");
-				///get truth values
-				getSame();
-				getType();
-				getRelatedto();
-
-			} catch (IOException e) {
+			}catch (IOException e) {
 				e.printStackTrace();
 			} catch (OWLOntologyCreationException e) {
 				e.printStackTrace();
 			}
 		}
-		reader.close();
 		Date loadingfilesfinished_time = new Date();
 		TimeDuration td = TimeCategory.minus(loadingfilesfinished_time, loadingfiles_time);
-		System.out.println("Total data (i.e. ontology and truth values) loading time "+ td);
+		System.out.println("Total ontology loading time "+ td);
+
+		loadingfiles_time = new Date();
+		System.out.println("Do you want to repopulate truth values"); 
+		System.out.println("Enter y/n: ");
+		n = reader.next();	
+		if (n.equals("y")) {
+			try	{
+				System.out.println("Populating truth values....");
+				///get truth values
+				getSame();
+				getType();
+				getRelatedto();
+			} catch (IOException e) {
+				e.printStackTrace();
+			} 
+		}
+		reader.close();
+		loadingfilesfinished_time = new Date();
+		td = TimeCategory.minus(loadingfilesfinished_time, loadingfiles_time);
+		System.out.println("Total truth values loading time "+ td);
 	}
 
 	/////////////////////////////////Sub - Eqv Class	
@@ -103,10 +117,10 @@ public class LoadOntology  {
 		String scontent = "", econtent = "";
 		long scounter = 1, ecounter = 1;
 		ExtendedIterator<OntClass> ocs = model.listClasses();
-		
+
 		while(ocs.hasNext()) {
 			OntClass oc = ocs.next();	
-			
+
 			// subclass
 			if(oc.hasSuperClass()) {
 				OntClass sc = oc.getSuperClass();
@@ -121,7 +135,7 @@ public class LoadOntology  {
 		}
 		write("subclassof.txt", scontent);
 		write("eqvclass.txt", econtent);
-		
+
 		getDisjointClasses(model);		
 
 	}
@@ -207,32 +221,40 @@ public class LoadOntology  {
 	}
 
 	/////////////////////////////////property domain/range and eq properties
-	
-	private static void getPropertiesInfo(OntModel model) throws IOException{
-		
+
+	private static void getPropertiesInfo(OntModel model) throws IOException, OWLOntologyCreationException{
+
 		String dcontent = "", rcontent = "", econtent="", scontent = "";
 		long dcounter = 1, rcounter = 1, ecounter = 1, scounter = 1;
-		
-		ExtendedIterator<OntProperty> ont = model.listAllOntProperties();
-		
+
+		Set<OntProperty> s_ont = model.listAllOntProperties().toSet();
+		Iterator<OntProperty> ont = s_ont.iterator();
 		while(ont.hasNext()) {
 			OntProperty p = ont.next();
 			//domain
 			if (p.getDomain()!=null) {
-				OntResource op = p.getDomain();
-				dcontent += p.toString() + "\t" + op.toString() + "\t" + dcounter++ +"\n";				
+				ExtendedIterator<? extends OntResource> ds = p.listDomain();
+				while(ds.hasNext()) {
+					OntResource d = ds.next();
+					dcontent += p.toString() + "\t" + d.toString() + "\t" + dcounter++ +"\n";				
+				}
 			}
 			//range
-			if (p.getRange()!=null) {
-				OntResource op = p.getRange();
-				rcontent += p.toString() +"\t" + op.toString() + "\t" + rcounter++ +"\n";
+			if (p.getRange()!=null) {			
+				ExtendedIterator<? extends OntResource> ds = p.listRange();
+				while(ds.hasNext()) {
+					OntResource r = ds.next();
+					rcontent += p.toString() +"\t" + r.toString() + "\t" + rcounter++ +"\n";
+				}
 			}
 			//sub property
 			if (p.getSuperProperty()!=null) {
-				OntProperty sp = p.getSuperProperty();
-				scontent += p.toString() + "\t"+ sp.toString() + "\t" + scounter++ + "\n";
+				ExtendedIterator<? extends OntProperty> ds = p.listSuperProperties();
+				while(ds.hasNext()) {
+					OntProperty sp = ds.next();
+					scontent += p.toString() + "\t"+ sp.toString() + "\t" + scounter++ + "\n";
+				}
 			}
-			
 			//equivalent property 
 			ExtendedIterator<? extends OntProperty> eps = p.listEquivalentProperties();
 			while(eps.hasNext()) {
@@ -244,7 +266,7 @@ public class LoadOntology  {
 		write("rangeof.txt", rcontent);
 		write("subpropertyof.txt", scontent);
 		write("eqvproperty.txt", econtent);
-				
+
 		getFunProperties(model);
 		getInvFunProperties(model);
 	}

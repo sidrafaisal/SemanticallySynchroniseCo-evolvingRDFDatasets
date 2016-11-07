@@ -56,15 +56,15 @@ class ReasoningUtils {
 		for (Predicate p : openPredsAll ) {
 
 			for (GroundAtom atom : Queries.getAllAtoms(testDB, p)){
-			int arity = atom.arity;
-			String s = "";
-			for (int i = 0; i < arity; i++) {
-				GroundTerm term = atom.getArguments()[i];
-				s += term.getValue() + ", ";
-			}
-			
-			if (atom.getValue() > 0)
-				println p.getName() +"(" + s.substring(0, s.length()-2) + ") : " + formatter.format(atom.getValue());
+				int arity = atom.arity;
+				String s = "";
+				for (int i = 0; i < arity; i++) {
+					GroundTerm term = atom.getArguments()[i];
+					s += term.getValue() + ", ";
+				}
+
+				if (atom.getValue() > 0)
+					println p.getName() +"(" + s.substring(0, s.length()-2) + ") : " + formatter.format(atom.getValue());
 			}
 			println "/////////////////////////////////////////";
 		}
@@ -72,28 +72,57 @@ class ReasoningUtils {
 
 	static def writeweights (PSLModel m, String filename) {
 		String content = "";
-		String [] rules = ["FROMDATASET(S, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', B) & FROMSRCDATASET(S, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', D) ) & NDISJOINTFROM(D, B) )",
-			"( ( FROMDATASET(S, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', B) & FROMTARDATASET(S, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', D) ) & NDISJOINTFROM(D, B) )",
-			"( ( ( DOMAINOF(A, B, UID1) & FROMDATASET(S, A, O) ) & FROMSRCDATASET(S, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', D) ) & DISJOINTFROM(D, B) )",
-			"( ( ( DOMAINOF(A, B, UID1) & FROMDATASET(S, A, O) ) & FROMTARDATASET(S, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', D) ) & DISJOINTFROM(D, B) )",
-			"( ( ( DOMAINOF(A, B, UID1) & FROMSRCDATASET(S, A, O) ) & FROMTARDATASET(S, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', D) ) & DISJOINTFROM(D, B) )",
-			"( ( ( DOMAINOF(A, B, UID1) & FROMTARDATASET(S, A, O) ) & FROMSRCDATASET(S, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', D) ) & DISJOINTFROM(D, B) )",
-			"( ( ( ( DOMAINOF(A, B, UID1) & SUBPROPERTYOF(C, A, UID2) ) & FROMDATASET(S, C, O) ) & FROMSRCDATASET(S, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', D) ) & DISJOINTFROM(D, B) )",
-			"( ( ( ( DOMAINOF(A, B, UID1) & SUBPROPERTYOF(C, A, UID2) ) & FROMDATASET(S, C, O) ) & FROMTARDATASET(S, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', D) ) & DISJOINTFROM(D, B) )",
-			"( ( ( ( DOMAINOF(A, B, UID1) & SUBPROPERTYOF(C, A, UID2) ) & FROMSRCDATASET(S, C, O) ) & FROMTARDATASET(S, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', D) ) & DISJOINTFROM(D, B) )",
-			"( ( ( ( DOMAINOF(A, B, UID1) & SUBPROPERTYOF(C, A, UID2) ) & FROMTARDATASET(S, C, O) ) & FROMSRCDATASET(S, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', D) ) & DISJOINTFROM(D, B) )",
-			"( ( ( RANGEOF(A, B, UID1) & FROMDATASET(S, A, O) ) & FROMSRCDATASET(O, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', D) ) & DISJOINTFROM(D, B) )",
-			"( ( ( RANGEOF(A, B, UID1) & FROMDATASET(S, A, O) ) & FROMTARDATASET(O, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', D) ) & DISJOINTFROM(D, B) )",
-			"( ( ( RANGEOF(A, B, UID1) & FROMSRCDATASET(S, A, O) ) & FROMTARDATASET(O, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', D) ) & DISJOINTFROM(D, B) )",
-			"( ( ( RANGEOF(A, B, UID1) & FROMTARDATASET(S, A, O) ) & FROMSRCDATASET(O, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', D) ) & DISJOINTFROM(D, B) )",
-			"( ( ( ( RANGEOF(A, B, UID1) & SUBPROPERTYOF(C, A, UID2) ) & FROMDATASET(S, C, O) ) & FROMSRCDATASET(O, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', D) ) & DISJOINTFROM(D, B) )",
-			"( ( ( ( RANGEOF(A, B, UID1) & SUBPROPERTYOF(C, A, UID2) ) & FROMDATASET(S, C, O) ) & FROMTARDATASET(O, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', D) ) & DISJOINTFROM(D, B) )",
-			"( ( ( ( RANGEOF(A, B, UID1) & SUBPROPERTYOF(C, A, UID2) ) & FROMSRCDATASET(S, C, O) ) & FROMTARDATASET(O, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', D) ) & DISJOINTFROM(D, B) )",
-			"( ( ( ( RANGEOF(A, B, UID1) & SUBPROPERTYOF(C, A, UID2) ) & FROMTARDATASET(S, C, O) ) & FROMSRCDATASET(O, 'http://www.w3.org/1999/02/22-rdf-syntax-ns#type', D) ) & DISJOINTFROM(D, B) )",
+//http://www.w3.org/1999/02/22-rdf-syntax-ns#type'
+		String [] rules = ["( ( FROMDATASET(S, 'http://www.w3.org/1999/02...', B) & FROMSRCDATASET(S, 'http://www.w3.org/1999/02...', D) ) & NDISJOINTFROM(D, B) )",
+			"( ( FROMDATASET(S, 'http://www.w3.org/1999/02...', B) & FROMTARDATASET(S, 'http://www.w3.org/1999/02...', D) ) & NDISJOINTFROM(D, B) )",
+			"( ( ( DOMAINOF(A, B, UID1) & FROMDATASET(S, A, O) ) & FROMSRCDATASET(S, 'http://www.w3.org/1999/02...', D) ) & DISJOINTFROM(D, B) )",
+			"( ( ( DOMAINOF(A, B, UID1) & FROMDATASET(S, A, O) ) & FROMTARDATASET(S, 'http://www.w3.org/1999/02...', D) ) & DISJOINTFROM(D, B) )",
+			"( ( ( DOMAINOF(A, B, UID1) & FROMSRCDATASET(S, A, O) ) & FROMTARDATASET(S, 'http://www.w3.org/1999/02...', D) ) & DISJOINTFROM(D, B) )",
+			"( ( ( DOMAINOF(A, B, UID1) & FROMTARDATASET(S, A, O) ) & FROMSRCDATASET(S, 'http://www.w3.org/1999/02...', D) ) & DISJOINTFROM(D, B) )",
+			"( ( ( ( DOMAINOF(A, B, UID1) & SUBPROPERTYOF(C, A, UID2) ) & FROMDATASET(S, C, O) ) & FROMSRCDATASET(S, 'http://www.w3.org/1999/02...', D) ) & DISJOINTFROM(D, B) )",
+			"( ( ( ( DOMAINOF(A, B, UID1) & SUBPROPERTYOF(C, A, UID2) ) & FROMDATASET(S, C, O) ) & FROMTARDATASET(S, 'http://www.w3.org/1999/02...', D) ) & DISJOINTFROM(D, B) )",
+			"( ( ( ( DOMAINOF(A, B, UID1) & SUBPROPERTYOF(C, A, UID2) ) & FROMSRCDATASET(S, C, O) ) & FROMTARDATASET(S, 'http://www.w3.org/1999/02...', D) ) & DISJOINTFROM(D, B) )",
+			"( ( ( ( DOMAINOF(A, B, UID1) & SUBPROPERTYOF(C, A, UID2) ) & FROMTARDATASET(S, C, O) ) & FROMSRCDATASET(S, 'http://www.w3.org/1999/02...', D) ) & DISJOINTFROM(D, B) )",
+			"( ( ( RANGEOF(A, B, UID1) & FROMDATASET(S, A, O) ) & FROMSRCDATASET(O, 'http://www.w3.org/1999/02...', D) ) & DISJOINTFROM(D, B) )",
+			"( ( ( RANGEOF(A, B, UID1) & FROMDATASET(S, A, O) ) & FROMTARDATASET(O, 'http://www.w3.org/1999/02...', D) ) & DISJOINTFROM(D, B) )",
+			"( ( ( RANGEOF(A, B, UID1) & FROMSRCDATASET(S, A, O) ) & FROMTARDATASET(O, 'http://www.w3.org/1999/02...', D) ) & DISJOINTFROM(D, B) )",
+			"( ( ( RANGEOF(A, B, UID1) & FROMTARDATASET(S, A, O) ) & FROMSRCDATASET(O, 'http://www.w3.org/1999/02...', D) ) & DISJOINTFROM(D, B) )",
+			"( ( ( ( RANGEOF(A, B, UID1) & SUBPROPERTYOF(C, A, UID2) ) & FROMDATASET(S, C, O) ) & FROMSRCDATASET(O, 'http://www.w3.org/1999/02...', D) ) & DISJOINTFROM(D, B) )",
+			"( ( ( ( RANGEOF(A, B, UID1) & SUBPROPERTYOF(C, A, UID2) ) & FROMDATASET(S, C, O) ) & FROMTARDATASET(O, 'http://www.w3.org/1999/02...', D) ) & DISJOINTFROM(D, B) )",
+			"( ( ( ( RANGEOF(A, B, UID1) & SUBPROPERTYOF(C, A, UID2) ) & FROMSRCDATASET(S, C, O) ) & FROMTARDATASET(O, 'http://www.w3.org/1999/02...', D) ) & DISJOINTFROM(D, B) )",
+			"( ( ( ( RANGEOF(A, B, UID1) & SUBPROPERTYOF(C, A, UID2) ) & FROMTARDATASET(S, C, O) ) & FROMSRCDATASET(O, 'http://www.w3.org/1999/02...', D) ) & DISJOINTFROM(D, B) )",
+			"( ( ( ( RANGEOF(A, B, UID1) & FROMSRCDATASET(X, A, Y) ) & FROMTARDATASET(X, A, Z) ) & HASTYPE(Y, B) ) & NHASTYPE(Z, B) )",
+			"( ( ( ( RANGEOF(A, B, UID1) & FROMSRCDATASET(X, A, Y) ) & FROMTARDATASET(X, A, Z) ) & HASTYPE(Z, B) ) & NHASTYPE(Y, B) )",
 			"( ( INVFUNPROPERTY(A, UID) & FROMDATASET(R, A, O) ) & FROMSRCDATASET(S, A, O) )",
 			"( ( INVFUNPROPERTY(A, UID) & FROMDATASET(R, A, O) ) & FROMTARDATASET(S, A, O) )",
 			"( ( INVFUNPROPERTY(A, UID) & FROMSRCDATASET(R, A, O) ) & FROMTARDATASET(S, A, O) )",
-			"( ( ( INVFUNPROPERTY(A, UID) & FROMDATASET(R, A, O) ) & FROMSRCDATASET(S, A, N) ) & FROMTARDATASET(S, A, O) )",
+			"( ( ( ( EQVPROPERTY(A, B, UID) & FROMDATASET(S, A, N) ) & FROMSRCDATASET(S, B, N) ) & FROMTARDATASET(S, B, O) ) & NSAME(N, O) ) ",
+			"( ( ( ( EQVPROPERTY(A, B, UID) & FROMDATASET(S, A, N) ) & FROMTARDATASET(S, B, N) ) & FROMSRCDATASET(S, B, O) ) & NSAME(N, O) )",
+			"( ( ( ( ( ( EQVPROPERTY(A, B, UID) & FROMDATASET(S, A, N) ) & FROMSRCDATASET(S, B, M) ) & FROMTARDATASET(S, B, O) ) & NSAME(N, M) ) & NSAME(N, O) ) & NSAME(M, O) )",
+			"( ( ( ( ( ( EQVPROPERTY(A, B, UID) & FROMDATASET(S, A, N) ) & FROMTARDATASET(S, B, M) ) & FROMSRCDATASET(S, B, O) ) & NSAME(N, M) ) & NSAME(N, O) ) & NSAME(M, O) )",
+			"( ( ( ( EQVPROPERTY(C, B, UID) & SUBPROPERTYOF(A, B, UID1) ) & FROMDATASET(S, C, N) ) & FROMSRCDATASET(S, A, N) ) & FROMTARDATASET(S, A, O) )",
+			"( ( ( ( EQVPROPERTY(C, B, UID) & SUBPROPERTYOF(A, B, UID1) ) & FROMDATASET(S, C, N) ) & FROMTARDATASET(S, A, N) ) & FROMSRCDATASET(S, A, O) )",
+			"( ( ( ( EQVPROPERTY(C, B, UID) & SUBPROPERTYOF(A, B, UID1) ) & FROMDATASET(S, C, N) ) & FROMSRCDATASET(S, A, M) ) & FROMTARDATASET(S, A, O) )",
+			"( ( ( ( EQVPROPERTY(C, B, UID) & SUBPROPERTYOF(A, B, UID1) ) & FROMDATASET(S, C, N) ) & FROMTARDATASET(S, A, M) ) & FROMSRCDATASET(S, A, O) )",
+			"( ( FROMSRCDATASET(S, A, N) & FROMTARDATASET(S, A, O) ) & SAMEAS(N, O) )",
+			"( ( FROMDATASET(S, A, N) & FROMSRCDATASET(S, A, O) ) & SAMEAS(N, O) )",
+			"( ( FROMDATASET(S, A, N) & FROMTARDATASET(S, A, O) ) & SAMEAS(N, O) )",
+			"( ( ( FROMDATASET(T, A, N) & FROMSRCDATASET(S, A, N) ) & FROMTARDATASET(S, A, O) ) & SAMEAS(T, S) )",
+			"( ( ( FROMDATASET(T, A, N) & FROMTARDATASET(S, A, N) ) & FROMSRCDATASET(S, A, O) ) & SAMEAS(T, S) )",
+			"( ( ( FROMDATASET(T, A, N) & FROMSRCDATASET(S, A, M) ) & FROMTARDATASET(S, A, O) ) & SAMEAS(T, S) )",
+			"( ( ( FROMDATASET(T, A, N) & FROMTARDATASET(S, A, M) ) & FROMSRCDATASET(S, A, O) ) & SAMEAS(T, S) )",
+			"( ( ( ( SUBPROPERTYOF(A, B, UID) & FROMDATASET(S, B, N) ) & FROMSRCDATASET(S, A, N) ) & FROMTARDATASET(S, A, O) ) & NSAME(N, O) )",
+			"( ( ( ( SUBPROPERTYOF(A, B, UID) & FROMDATASET(S, B, N) ) & FROMTARDATASET(S, A, N) ) & FROMSRCDATASET(S, A, O) ) & NSAME(N, O) )",
+			"( ( ( ( ( ( SUBPROPERTYOF(A, B, UID) & FROMDATASET(S, B, N) ) & FROMSRCDATASET(S, A, M) ) & FROMTARDATASET(S, A, O) ) & NSAME(N, M) ) & NSAME(N, O) ) & NSAME(M, O) )",
+			"( ( ( ( ( ( SUBPROPERTYOF(A, B, UID) & FROMDATASET(S, B, N) ) & FROMTARDATASET(S, A, M) ) & FROMSRCDATASET(S, A, O) ) & NSAME(N, M) ) & NSAME(N, O) ) & NSAME(M, O) )",
+			"( ( ( ( SUBPROPERTYOF(A, B, UID) & FROMDATASET(S, B, N) ) & FROMSRCDATASET(S, A, N) ) & FROMTARDATASET(S, A, O) ) & DIFFROM(N, O) )",
+			"( ( ( ( SUBPROPERTYOF(A, B, UID) & FROMDATASET(S, B, N) ) & FROMTARDATASET(S, A, N) ) & FROMSRCDATASET(S, A, O) ) & DIFFROM(N, O) )",
+			"( ( ( ( ( ( SUBPROPERTYOF(A, B, UID) & FROMDATASET(S, B, N) ) & FROMSRCDATASET(S, A, M) ) & FROMTARDATASET(S, A, O) ) & DIFFROM(N, M) ) & DIFFROM(N, O) ) & DIFFROM(M, O) )",
+			"( ( ( ( ( ( SUBPROPERTYOF(A, B, UID) & FROMDATASET(S, B, N) ) & FROMTARDATASET(S, A, M) ) & FROMSRCDATASET(S, A, O) ) & DIFFROM(N, M) ) & DIFFROM(N, O) ) & DIFFROM(M, O) )",
+			"( ( ( ( EQVPROPERTY(A, B, UID) & FROMDATASET(S, A, N) ) & FROMSRCDATASET(S, B, N) ) & FROMTARDATASET(S, B, O) ) & DIFFROM(N, O) )",
+			"( ( ( ( EQVPROPERTY(A, B, UID) & FROMDATASET(S, A, N) ) & FROMTARDATASET(S, B, N) ) & FROMSRCDATASET(S, B, O) ) & DIFFROM(N, O) )",
+			"( ( ( ( ( ( EQVPROPERTY(A, B, UID) & FROMDATASET(S, A, N) ) & FROMSRCDATASET(S, B, M) ) & FROMTARDATASET(S, B, O) ) & DIFFROM(N, M) ) & DIFFROM(N, O) ) & DIFFROM(M, O) )",
+			"( ( ( ( ( ( EQVPROPERTY(A, B, UID) & FROMDATASET(S, A, N) ) & FROMTARDATASET(S, B, M) ) & FROMSRCDATASET(S, B, O) ) & DIFFROM(N, M) ) & DIFFROM(N, O) ) & DIFFROM(M, O) )",
 			"~( TYPE(X, B) )",
 			"~( RELATEDTO(X, A, Z)",
 			"~( ISSAME(Y, Z) )"];
@@ -141,16 +170,75 @@ class ReasoningUtils {
 				else if (s.contains(rules[17]))
 					content += "'ran8':"+c.getWeight().getWeight() +"\n";
 				else if (s.contains(rules[18]))
-					content += "'ifp1':"+c.getWeight().getWeight() +"\n";
+					content += "'ran9':"+c.getWeight().getWeight() +"\n";
 				else if (s.contains(rules[19]))
-					content += "'ifp2':"+c.getWeight().getWeight() +"\n";
-
+					content += "'ran10':"+c.getWeight().getWeight() +"\n";
 				else if (s.contains(rules[20]))
-					content += "'type':"+c.getWeight().getWeight() +"\n";
+					content += "'ifp1':"+c.getWeight().getWeight() +"\n";
 				else if (s.contains(rules[21]))
-					content += "'related':"+c.getWeight().getWeight() +"\n";
+					content += "'ifp2':"+c.getWeight().getWeight() +"\n";
 				else if (s.contains(rules[22]))
+					content += "'ifp3':"+c.getWeight().getWeight() +"\n";
+				else if (s.contains(rules[23]))
+					content += "'ep1':"+c.getWeight().getWeight() +"\n";
+				else if (s.contains(rules[24]))
+					content += "'ep2':"+c.getWeight().getWeight() +"\n";
+				else if (s.contains(rules[25]))
+					content += "'ep3':"+c.getWeight().getWeight() +"\n";
+				else if (s.contains(rules[26]))
+					content += "'ep4':"+c.getWeight().getWeight() +"\n";
+				else if (s.contains(rules[27]))
+					content += "'ep5':"+c.getWeight().getWeight() +"\n";
+				else if (s.contains(rules[28]))
+					content += "'ep6':"+c.getWeight().getWeight() +"\n";
+				else if (s.contains(rules[29]))
+					content += "'ep7':"+c.getWeight().getWeight() +"\n";
+				else if (s.contains(rules[30]))
+					content += "'ep8':"+c.getWeight().getWeight() +"\n";
+				else if (s.contains(rules[31]))
+					content += "'sa1':"+c.getWeight().getWeight() +"\n";
+				else if (s.contains(rules[32]))
+					content += "'sa2':"+c.getWeight().getWeight() +"\n";
+				else if (s.contains(rules[33]))
+					content += "'sa3':"+c.getWeight().getWeight() +"\n";
+				else if (s.contains(rules[34]))
+					content += "'sa4':"+c.getWeight().getWeight() +"\n";
+				else if (s.contains(rules[35]))
+					content += "'sa5':"+c.getWeight().getWeight() +"\n";
+				else if (s.contains(rules[36]))
+					content += "'sa6':"+c.getWeight().getWeight() +"\n";
+				else if (s.contains(rules[37]))
+					content += "'sa7':"+c.getWeight().getWeight() +"\n";
+				else if (s.contains(rules[38]))
+					content += "'sp1':"+c.getWeight().getWeight() +"\n";
+				else if (s.contains(rules[39]))
+					content += "'sp2':"+c.getWeight().getWeight() +"\n";
+				else if (s.contains(rules[40]))
+					content += "'sp3':"+c.getWeight().getWeight() +"\n";
+				else if (s.contains(rules[41]))
+					content += "'sp4':"+c.getWeight().getWeight() +"\n";
+				else if (s.contains(rules[42]))
+					content += "'df1':"+c.getWeight().getWeight() +"\n";
+				else if (s.contains(rules[43]))
+					content += "'df2':"+c.getWeight().getWeight() +"\n";
+				else if (s.contains(rules[44]))
+					content += "'df3':"+c.getWeight().getWeight() +"\n";
+				else if (s.contains(rules[45]))
+					content += "'df4':"+c.getWeight().getWeight() +"\n";
+				else if (s.contains(rules[46]))
+					content += "'df5':"+c.getWeight().getWeight() +"\n";
+				else if (s.contains(rules[47]))
+					content += "'df6':"+c.getWeight().getWeight() +"\n";
+				else if (s.contains(rules[48]))
+					content += "'df7':"+c.getWeight().getWeight() +"\n";
+				else if (s.contains(rules[49]))
+					content += "'df8':"+c.getWeight().getWeight() +"\n";
+				else if (s.contains(rules[50]))
+					content += "'type':"+c.getWeight().getWeight() +"\n";
+				else if (s.contains(rules[51]))
 					content += "'isSame':"+c.getWeight().getWeight() +"\n";
+				else if (s.contains(rules[52]))
+					content += "'related':"+c.getWeight().getWeight() +"\n";
 			} catch(org.codehaus.groovy.runtime.typehandling.GroovyCastException r) {
 			}
 		}

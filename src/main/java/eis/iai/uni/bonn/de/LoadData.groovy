@@ -28,15 +28,19 @@ import groovy.time.TimeCategory;
 
 public class LoadData {
 	String filename, filesyntax ;
-	private Model model ;
-
+	public Model model ;
+	public Model smodel ;
+	public Model tmodel ;
 	private Object dir;
-	public LoadData(String f, String t, String d, String [] datasets){
-		filename = f;
-		filesyntax = t;
+	
+	public LoadData(String d, String [] datasets){
+		filename = datasets[0];
+		filesyntax = datasets[4];
 		dir = d;
 		model = FileManager.get().loadModel(filename, filesyntax);
-
+		smodel = FileManager.get().loadModel(datasets[1], filesyntax);	
+		tmodel = FileManager.get().loadModel(datasets[2], filesyntax);
+		
 		ReasoningUtils r =	new ReasoningUtils();
 		Date datasetsloading_time = new Date();
 		def testDir = dir+'test'+java.io.File.separator;
@@ -63,8 +67,7 @@ public class LoadData {
 		m.add predicate: "fromTarDataset"  , types: [ArgumentType.String, ArgumentType.String, ArgumentType.String]
 
 		//from ontology
-		m.add predicate: "subclassOf"    , types: [ArgumentType.String, ArgumentType.String, ArgumentType.UniqueID]
-		
+		m.add predicate: "subclassOf"    , types: [ArgumentType.String, ArgumentType.String, ArgumentType.UniqueID]		
 		m.add predicate: "domainOf"    , types: [ArgumentType.String, ArgumentType.String, ArgumentType.UniqueID]
 		m.add predicate: "subpropertyOf"    , types: [ArgumentType.String, ArgumentType.String, ArgumentType.UniqueID]
 		m.add predicate: "rangeOf"     , types: [ArgumentType.String, ArgumentType.String, ArgumentType.UniqueID]
@@ -80,41 +83,20 @@ public class LoadData {
 		m.add predicate: "isSame"    , types: [ArgumentType.String, ArgumentType.String]
 		m.add predicate: "type"     , types: [ArgumentType.String, ArgumentType.String]
 		m.add predicate: "relatedTo"    , types: [ArgumentType.String, ArgumentType.String, ArgumentType.String]
-			/*
+
 		 //functions
-		 m.add function: "hasType"     , implementation: new hasType();
-		 */		m.add function: "ndisjointfrom"     , implementation: new isnotDisjoint();
+		 m.add function: "hasType"     , implementation: new isType();
+		 m.add function: "nhasType"     , implementation: new isnotType();
+		 
+		m.add function: "ndisjointfrom"     , implementation: new isnotDisjoint();
 		m.add function: "disjointfrom"     , implementation: new isDisjoint();
 		m.add function: "nsame"     , implementation: new isnotSame();
-			//	m.add function: "resource"     , implementation: new isresource();
-		/*		
-		 m.add function: "difffrom"     , implementation: new isDiff();//currently, straight but also possible sameas(M,N) & difffrom(N, O)
-		 */	}
+		m.add function: "sameas"     , implementation: new is_same();
+		m.add function: "diffrom"     , implementation: new isDiff();//currently, straight but also possible sameas(M,N) & difffrom(N, O)
+		 	}
 
 
 	//////////////////////////////External functions//////////////////////////
-	class hasType implements ExternalFunction {
-
-		@Override
-		public int getArity() {
-			return 2;
-		}
-
-		@Override
-		public ArgumentType[] getArgumentTypes() {
-			return [ArgumentType.String, ArgumentType.String].toArray();
-		}
-
-		@Override
-		public double getValue(ReadOnlyDatabase db, GroundTerm... args) {
-			return (args[0].toString().equals("c"))? 1.0 : 0.0;
-			//		return 1.0;
-
-
-			//	return args[0].toString().equals(args[1].toString()) ? 1.0 : 0.0;
-
-		}
-	}
 
 	class isDiff implements ExternalFunction {
 
@@ -131,23 +113,55 @@ public class LoadData {
 		@Override
 		public double getValue(ReadOnlyDatabase db, GroundTerm... args) {
 			double value = 0.0;
-
-			String x = args[0],//"http://dbpedia.org/resource/Jean_Georges"
-			y = args[1];//"http://dbpedia.org/resource/Jean";
-			Resource r = model.getResource(x);
+			Resource x = model.getResource(args[0].getValue());
+			Resource y = model.getResource(args[1].getValue());
+			
 			Property p = ResourceFactory.createProperty("http://www.w3.org/2002/07/owl#differentFrom");
-			Resource r1 = r.getPropertyResourceValue(p);
-			Resource r2 = model.getResource(y);
+			Resource r1 = x.getPropertyResourceValue(p);
 
-			if (r1.equals(r2))
+			if (r1.equals(y))
 				value = 1.0;
-			//		System.out.print(""+value);
+			else {
+					r1 = y.getPropertyResourceValue(p);
+					if (r1.equals(x))
+						value = 1.0;
+				}
 			return value;
 		}
 	}
 
-	class isnotSame implements ExternalFunction {
-		
+	class is_same implements ExternalFunction {
+		@Override
+		public int getArity() {
+			return 2;
+		}
+
+		@Override
+		public ArgumentType[] getArgumentTypes() {
+			return [ArgumentType.String, ArgumentType.String].toArray();
+		}
+
+		@Override
+		public double getValue(ReadOnlyDatabase db, GroundTerm... args) {
+			double value = 0.0;
+			Resource x = model.getResource(args[0].getValue());
+			Resource y = model.getResource(args[1].getValue());
+			Property p = ResourceFactory.createProperty("http://www.w3.org/2002/07/owl#sameAs");
+			Resource r1 = x.getPropertyResourceValue(p);
+
+			if (r1.equals(y))
+				value = 1.0;
+			else {
+				r1 = y.getPropertyResourceValue(p);
+				if (r1.equals(x))
+					value = 1.0;
+			}
+			//	System.out.print(""+value);
+			return value;
+		}
+	}
+	
+	class isnotSame implements ExternalFunction {		
 				@Override
 				public int getArity() {
 					return 2;
@@ -229,7 +243,6 @@ public class LoadData {
 			String line = null;
 			String str1 = args[0].getValue();
 			String str2 = args[1].getValue();
-
 			String input1 =  str1+ "\t" + str2;
 			String input2 = str2 + "\t" + str1;
 			while ((line = br.readLine()) != null) {
@@ -243,23 +256,56 @@ public class LoadData {
 		}
 	}
 
-	class isresource implements ExternalFunction {
-
+	class isType implements ExternalFunction {
 		@Override
 		public int getArity() {
-			return 1;
+			return 2;
 		}
 
 		@Override
 		public ArgumentType[] getArgumentTypes() {
-			return [ArgumentType.String].toArray();
+			return [ArgumentType.String, ArgumentType.String].toArray();
 		}
 
 		@Override
 		public double getValue(ReadOnlyDatabase db, GroundTerm... args) {
-			double res = 0.0;
+			double value = 0.0;
+			Resource x = smodel.getResource(args[0].getValue());
+			if (x==null)
+				x = tmodel.getResource(args[0].getValue());
+			Property type_property = ResourceFactory.createProperty("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
+			RDFNode type = (RDFNode) ResourceFactory.createResource(args[1].getValue());
 
-			return res;
+			if (smodel.contains(x, type_property, type) || tmodel.contains(x, type_property, type)) {
+				value = 1.0;
+			}
+			return value;
+		}
+	}
+	class isnotType implements ExternalFunction {
+		@Override
+		public int getArity() {
+			return 2;
+		}
+
+		@Override
+		public ArgumentType[] getArgumentTypes() {
+			return [ArgumentType.String, ArgumentType.String].toArray();
+		}
+
+		@Override
+		public double getValue(ReadOnlyDatabase db, GroundTerm... args) {
+			double value = 1.0;
+			Resource x = smodel.getResource(args[0].getValue());			
+			if (x==null)
+				x = tmodel.getResource(args[0].getValue());
+			Property type_property = ResourceFactory.createProperty("http://www.w3.org/1999/02/22-rdf-syntax-ns#type");
+			RDFNode type = (RDFNode) ResourceFactory.createResource(args[1].getValue());
+
+			if (smodel.contains(x, type_property, type) || tmodel.contains(x, type_property, type)){
+			value = 0.0;
+			}
+			return value;
 		}
 	}
 }

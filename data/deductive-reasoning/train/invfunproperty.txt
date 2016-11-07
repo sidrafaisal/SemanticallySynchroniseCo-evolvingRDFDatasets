@@ -1,1 +1,1 @@
-http://dbpedia.org/ontology/#biologicalMotherOf	1
+http://dbpedia.org/ontology/biologicalMotherOf	1

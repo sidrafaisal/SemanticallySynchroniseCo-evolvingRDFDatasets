@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.List;
 
 import org.apache.jena.util.FileManager;
+import org.apache.jena.ontology.OntClass;
 import org.apache.jena.rdf.model.Model
 import org.apache.jena.rdf.model.Property;
 import org.apache.jena.rdf.model.ResIterator;
@@ -32,6 +33,7 @@ import edu.umd.cs.psl.model.atom.RandomVariableAtom;
 import edu.umd.cs.psl.model.formula.Rule
 import edu.umd.cs.psl.model.function.ExternalFunction;
 import edu.umd.cs.psl.model.predicate.type.*;
+import edu.umd.cs.psl.application.inference.LazyMPEInference
 import edu.umd.cs.psl.application.inference.MPEInference;
 import edu.umd.cs.psl.application.learning.weight.maxlikelihood.MaxLikelihoodMPE;
 import edu.umd.cs.psl.config.*;
@@ -49,7 +51,7 @@ Logger log = LoggerFactory.getLogger(this.class);
 //////////////////////////  configuration ////////////////////////
 ConfigManager cm = ConfigManager.getManager()
 ConfigBundle config = cm.getBundle("deductive-reasoning")
-config.addProperty("admmreasoner.maxiterations",30000);
+config.addProperty("admmreasoner.maxiterations",5000);
 config.addProperty("lazympeinference.maxrounds",14);
 
 //////////////////////////  storage settings ////////////////////////
@@ -62,7 +64,7 @@ def dir = 'data'+java.io.File.separator+'deductive-reasoning'+java.io.File.separ
 
 def PSLModel m = new PSLModel(this, data);
 String [] datasets = ["slice", "srcChanges", "tarChanges", "dbpedia_2014.owl", "NT"];
-LoadData l = new LoadData(datasets[0], datasets[4], dir, datasets); // to find e.g. sameAs and difffrom info
+LoadData l = new LoadData(dir, datasets); // to find e.g. sameAs and difffrom info
 LoadOntology lont = new LoadOntology(datasets[0], datasets[4]);
 lont.populateFiles(datasets[3], dir);
 
@@ -73,11 +75,11 @@ l.loadpredicates(m);
 create_rules(m, weightMap);
 
 //////////////////////////// learning and inference ///////////////////////
-runInference(m, data, dir, config, datasets);
-//r.writeweights (m,  "weights.txt");
+runInference(m, data, dir, config, datasets,l,lont);
+r.writeweights (m, "weights.txt");
 
 //////////////////////////// Run inference ///////////////////////////
-def runInference(m, data, dir, config, datasets) {	
+def runInference(m, data, dir, config, datasets,l,lont) {	
 	Date trainingInference_time = new Date();
 	/* We close all the predicates since we want to treat those atoms as observed, and leave the predicate
 	* type open to infer its atoms' values.*/
@@ -96,7 +98,7 @@ def runInference(m, data, dir, config, datasets) {
 
 	Partition trainPredictions = new Partition(1);	//write partition
 	Database trainDB = data.getDatabase(trainPredictions, closedPredsAll, trainObservations);
-	populateType(trainDB, datasets);
+	populateType(trainDB, datasets,l,lont);
 	populaterelatedTo(trainDB);
 	populateisSame(trainDB);
 
@@ -129,12 +131,13 @@ def runInference(m, data, dir, config, datasets) {
 	r.loadPredicateAtoms(data, closedPredsAll, testDir, testObservations);
 
 	Database testDB = data.getDatabase(testPredictions, closedPredsAll, testObservations);
-	populateType(testDB, datasets);
+	populateType(testDB, datasets,l,lont);
 	populaterelatedTo(testDB);
 	populateisSame(testDB);
 
 	println "INFERRING...";
-	MPEInference inference = new MPEInference(m, testDB, config);
+	LazyMPEInference inference = new LazyMPEInference(m, testDB, config);
+	//MPEInference inference = new MPEInference(m, testDB, config);
 	inference.mpeInference();
 	inference.close();
 	Date testingInferencefinished_time = new Date();
@@ -156,6 +159,7 @@ def create_rules (m, weightMap) {
 	String rdftype = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type", 
 	same = "http://www.w3.org/2002/07/owl#sameAs"; 
 	
+	//disjiont classes	
 	m.add rule : ( fromDataset(S, rdftype, B) & fromSrcDataset(S, rdftype, D) & ndisjointfrom(D,B)) >> type(S,D), weight : weightMap["sim1"];
 	m.add rule : ( fromDataset(S, rdftype, B) & fromTarDataset(S, rdftype, D) & ndisjointfrom(D,B)) >> type(S,D), weight : weightMap["sim2"];
 	
@@ -183,157 +187,64 @@ def create_rules (m, weightMap) {
 	m.add rule : ( rangeOf(A, B, UID1) & subpropertyOf(C, A, UID2) & fromSrcDataset(S, C, O) & fromTarDataset(O, rdftype, D) & disjointfrom(D,B)) >> type(O,B), weight : weightMap["ran7"];
 	m.add rule : ( rangeOf(A, B, UID1) & subpropertyOf(C, A, UID2) & fromTarDataset(S, C, O) & fromSrcDataset(O, rdftype, D) & disjointfrom(D,B)) >> type(O,B), weight : weightMap["ran8"];
 	
-	//2.3 - inferening instead of resolving conflicts 	
-/*	m.add rule : ( rangeOf(A, B, T0, T1, UID1) & fromSrcDataset(S, A, O, T2, T0, T3) & fromTarDataset(S, A, N, T2, T0, T4) & resource(O)) >> type(O,B), weight : weightMap["ran9"];
-	m.add rule : ( rangeOf(A, B, T0, T1, UID1) & fromSrcDataset(S, A, O, T2, T0, T3) & fromTarDataset(S, A, N, T2, T0, T4) & resource(N)) >> type(N,B), weight : weightMap["ran10"];
-	m.add rule : ( rangeOf(A, B, T0, T1, UID1) & subpropertyOf(C, A, T2, T0, UID2) & fromSrcDataset(S, C, O, T3, T2, T4) & fromTarDataset(S, C, N, T3, T2, T5) & resource(O)) >> type(O,B), weightMap["ran12"];
-	m.add rule : ( rangeOf(A, B, T0, T1, UID1) & subpropertyOf(C, A, T2, T0, UID2) & fromSrcDataset(S, C, O, T3, T2, T4) & fromTarDataset(S, C, N, T3, T2, T5) & resource(N)) >> type(N,B), weightMap["ran13"];
-*/
-	
-		//m.add rule : ( rangeOf(A, B, T0, T1, UID1) & fromSrcDataset(S, A, O, T2, T0, T3) & fromTarDataset(S, A, N, T2, T0, T4) & disjointfrom(D,B)) >> isSame(O,N), weight : weightMap["ran11"];
-//	m.add rule : ( rangeOf(A, B, T0, T1, UID1) & subpropertyOf(C, A, T2, T0, UID2) & fromSrcDataset(S, C, O, T3, T2, T4) & fromTarDataset(S, C, N, T3, T2, T5) & disjointfrom(D,B)) >> isSame(O,N), weightMap["ran14"];
-	//2.4
-	//?	m.add rule : ( rangeOf(A, B, T0, T1, UID1) & fromSrcDataset(X, A, Y, T2, T3, T4) & fromTarDataset(X, A, Z, T5, T6, T7) & hasType(Y,B) && !hasType(Z,B)) >> relatedTo(X,A,Y), weight : 10;
-	//?	m.add rule : ( rangeOf(A, B, T0, T1, UID1) & fromSrcDataset(X, A, Y, T2, T3, T4) & fromTarDataset(X, A, Z, T5, T6, T7) & hasType(Z,B) && !hasType(Y,B)) >> relatedTo(X,A,Z), weight : 10;
+	//2.3
+	m.add rule : ( rangeOf(A, B, UID1) & fromSrcDataset(X, A, Y) & fromTarDataset(X, A, Z) & hasType(Y,B) & nhasType(Z,B)) >> relatedTo(X,A,Y), weight : weightMap["ran9"];
+	m.add rule : ( rangeOf(A, B, UID1) & fromSrcDataset(X, A, Y) & fromTarDataset(X, A, Z) & hasType(Z,B) & nhasType(Y,B)) >> relatedTo(X,A,Z), weight : weightMap["ran10"];
 
 	// inverse functional property 
 	//3.1
 	m.add rule : (invFunProperty(A, UID) & fromDataset(R, A, O) & fromSrcDataset(S, A, O)) >> isSame(R,S), weight : weightMap["ifp1"];	
 	m.add rule : (invFunProperty(A, UID) & fromDataset(R, A, O) & fromTarDataset(S, A, O)) >> isSame(R,S), weight : weightMap["ifp2"];
 	m.add rule : (invFunProperty(A, UID) & fromSrcDataset(R, A, O) & fromTarDataset(S, A, O)) >> isSame(S,R), weight: weightMap["ifp3"];
-//	m.add rule : (invFunProperty(A, UID) & fromDataset(R, A, O) & fromSrcDataset(S, A, N) & fromTarDataset(S, A, O)) >> relatedTo(S,A,O), weight : weightMap["ifp1"];
-//	m.add rule : (invFunProperty(A, UID) & fromDataset(R, A, O) & fromSrcDataset(S, A, N) & fromTarDataset(S, A, O)) >> isSame(S,R), weight: weightMap["ifp2"];
-
-/*
-	// restrictions	
-	//4.1
-	m.add rule : (onproperty(X,A) & maxCardinality(X,"1") & fromDataset(S, rdftype, X) & fromSrcDataset(S, A, O) & 
-		fromTarDataset(S, A, N)) >> isSame(O,N), weight : 8;
-	m.add rule : (onproperty(X,A) & maxCardinality(X,"1") & fromSrcDataset(S, rdftype, X) & fromSrcDataset(S, A, O) & 
-		fromTarDataset(S, A, N)) >> isSame(O,N), weight : 8;
-	m.add rule : (onproperty(X,A) & maxCardinality(X,"1") & fromTarDataset(S, rdftype, X) & fromSrcDataset(S, A, O) & 
-		fromTarDataset(S, A, N)) >> isSame(O,N), weight : 8;
-	//4.2
-	m.add rule : (onproperty(X,A) & maxCardinality(X,"1") & hasValue(X,O) & fromDataset(S, rdftype, X) & fromSrcDataset(S, A, O) & 
-		fromTarDataset(S, A, N)) >> relatedTo(S, A, O), weight : 8;
-	m.add rule : (onproperty(X,A) & maxCardinality(X,"1") & hasValue(X,O) & fromDataset(S, rdftype, X) & fromTarDataset(S, A, O) & 
-		fromSrcDataset(S, A, N)) >> relatedTo(S, A, O), weight : 8;
-	m.add rule : (onproperty(X,A) & maxCardinality(X,"1") & hasValue(X,O) & fromDataset(S, rdftype, X) & fromTarDataset(S, A, O) & 
-		fromSrcDataset(S, A, N)) >> isSame(O,N), weight : 5;	
-	m.add rule : (onproperty(X,A) & maxCardinality(X,"1") & hasValue(X,O) & fromDataset(S, rdftype, X) & fromDataset(M, same, O) & 
-		fromSrcDataset(S, A, M) & fromTarDataset(S, A, N)) >> relatedTo(S, A, M), weight : 8;
-	m.add rule : (onproperty(X,A) & maxCardinality(X,"1") & hasValue(X,O) & fromDataset(S, rdftype, X) & fromDataset(M, same, O) & 
-		fromTarDataset(S, A, M) & fromSrcDataset(S, A, N)) >> relatedTo(S, A, M), weight : 8;
-
-	m.add rule : (onproperty(X,A) & maxCardinality(X,"1") & hasValue(X,O) & fromSrcDataset(S, rdftype, X) & fromSrcDataset(S, A, O) & 
-		fromTarDataset(S, A, N)) >> relatedTo(S, A, O), weight : 8;
-	m.add rule : (onproperty(X,A) & maxCardinality(X,"1") & hasValue(X,O) & fromSrcDataset(S, rdftype, X) & fromTarDataset(S, A, O) & 
-		fromSrcDataset(S, A, N)) >> relatedTo(S, A, O), weight : 8;
-	m.add rule : (onproperty(X,A) & maxCardinality(X,"1") & hasValue(X,O) & fromSrcDataset(S, rdftype, X) & fromTarDataset(S, A, O) & 
-		fromSrcDataset(S, A, N)) >> isSame(O,N), weight : 5;
-	m.add rule : (onproperty(X,A) & maxCardinality(X,"1") & hasValue(X,O) & fromSrcDataset(S, rdftype, X) & fromDataset(M, same, O) & 
-		fromSrcDataset(S, A, M) & fromTarDataset(S, A, N)) >> relatedTo(S, A, M), weight : 8;
-	m.add rule : (onproperty(X,A) & maxCardinality(X,"1") & hasValue(X,O) & fromSrcDataset(S, rdftype, X) & fromDataset(M, same, O) & 
-		fromTarDataset(S, A, M) & fromSrcDataset(S, A, N)) >> relatedTo(S, A, M), weight : 8;
-
-	m.add rule : (onproperty(X,A) & maxCardinality(X,"1") & hasValue(X,O) & fromTarDataset(S, rdftype, X) & fromSrcDataset(S, A, O) & 
-		fromTarDataset(S, A, N)) >> relatedTo(S, A, O), weight : 8;
-	m.add rule : (onproperty(X,A) & maxCardinality(X,"1") & hasValue(X,O) & fromTarDataset(S, rdftype, X) & fromTarDataset(S, A, O) & 
-		fromSrcDataset(S, A, N)) >> relatedTo(S, A, O), weight : 8;
-	m.add rule : (onproperty(X,A) & maxCardinality(X,"1") & hasValue(X,O) & fromTarDataset(S, rdftype, X) & fromTarDataset(S, A, O) & 
-		fromSrcDataset(S, A, N)) >> isSame(O,N), weight : 5;
-	m.add rule : (onproperty(X,A) & maxCardinality(X,"1") & hasValue(X,O) & fromTarDataset(S, rdftype, X) & fromDataset(M, same, O) & 
-		fromSrcDataset(S, A, M) & fromTarDataset(S, A, N)) >> relatedTo(S, A, M), weight : 8;
-	m.add rule : (onproperty(X,A) & maxCardinality(X,"1") & hasValue(X,O) & fromTarDataset(S, rdftype, X) & fromDataset(M, same, O) & 
-		fromTarDataset(S, A, M) & fromSrcDataset(S, A, N)) >> relatedTo(S, A, M), weight : 8;
-
-	//4.3
-	m.add rule : (subclassOf(X,Y) & onproperty(Y,A) & hasValue(Y,O) & onproperty(X,A) & maxCardinality(X,"1") & 
-		fromDataset(S, rdftype, X) & fromSrcDataset(S, A, O) & fromTarDataset(S, A, N)) >> relatedTo(S, A, O), weight : 8;
-	m.add rule : (subclassOf(X,Y) & onproperty(Y,A) & hasValue(Y,O) & onproperty(X,A) & maxCardinality(X,"1") &
-		 fromDataset(S, rdftype, X) & fromTarDataset(S, A, O) & fromSrcDataset(S, A, N)) >> relatedTo(S, A, O), weight : 8;
-	m.add rule : (subclassOf(X,Y) & onproperty(Y,A) & hasValue(Y,O) & onproperty(X,A) & maxCardinality(X,"1") & 
-		fromDataset(S, rdftype, X) & fromTarDataset(S, A, O) & fromSrcDataset(S, A, N)) >> isSame(O,N), weight : 5;
-	m.add rule : (subclassOf(X,Y) & onproperty(Y,A) & hasValue(Y,O) & onproperty(X,A) & maxCardinality(X,"1") & fromDataset(S, rdftype, X) &  
-		fromDataset(M, same, O) & fromSrcDataset(S, A, M) & fromTarDataset(S, A, N)) >> relatedTo(S, A, M), weight : 8;
-	m.add rule : (subclassOf(X,Y) & onproperty(Y,A) & hasValue(Y,O) & onproperty(X,A) & maxCardinality(X,"1") & fromDataset(S, rdftype, X) & 
-		fromDataset(M, same, O) & fromTarDataset(S, A, M) & fromSrcDataset(S, A, N)) >> relatedTo(S, A, M), weight : 8;
-
-	m.add rule : (subclassOf(X,Y) & onproperty(Y,A) & hasValue(Y,O) & onproperty(X,A) & maxCardinality(X,"1") & 
-		fromSrcDataset(S, rdftype, X) & fromSrcDataset(S, A, O) & fromTarDataset(S, A, N)) >> relatedTo(S, A, O), weight : 8;
-	m.add rule : (subclassOf(X,Y) & onproperty(Y,A) & hasValue(Y,O) & onproperty(X,A) & maxCardinality(X,"1") & 
-		fromSrcDataset(S, rdftype, X) & fromTarDataset(S, A, O) & fromSrcDataset(S, A, N)) >> relatedTo(S, A, O), weight : 8;
-	m.add rule : (subclassOf(X,Y) & onproperty(Y,A) & hasValue(Y,O) & onproperty(X,A) & maxCardinality(X,"1") & 
-		fromSrcDataset(S, rdftype, X) & fromTarDataset(S, A, O) & fromSrcDataset(S, A, N)) >> isSame(O,N), weight : 5;
-	m.add rule : (subclassOf(X,Y) & onproperty(Y,A) & hasValue(Y,O) & onproperty(X,A) & maxCardinality(X,"1") & 
-		fromSrcDataset(S, rdftype, X) & fromDataset(M, same, O) & fromSrcDataset(S, A, M) & 
-		fromTarDataset(S, A, N)) >> relatedTo(S, A, M), weight : 8;
-	m.add rule : (subclassOf(X,Y) & onproperty(Y,A) & hasValue(Y,O) & onproperty(X,A) & maxCardinality(X,"1") & fromSrcDataset(S, rdftype, X) & 
-		fromDataset(M, same, O) & fromTarDataset(S, A, M) & fromSrcDataset(S, A, N)) >> relatedTo(S, A, M), weight : 8;
-
-	m.add rule : (subclassOf(X,Y) & onproperty(Y,A) & hasValue(Y,O) & onproperty(X,A) & maxCardinality(X,"1") & 
-		fromTarDataset(S, rdftype, X) & fromSrcDataset(S, A, O) & fromTarDataset(S, A, N)) >> relatedTo(S, A, O), weight : 8;
-	m.add rule : (subclassOf(X,Y) & onproperty(Y,A) & hasValue(Y,O) & onproperty(X,A) & maxCardinality(X,"1") & 
-		fromTarDataset(S, rdftype, X) & fromTarDataset(S, A, O) & fromSrcDataset(S, A, N)) >> relatedTo(S, A, O), weight : 8;
-	m.add rule : (subclassOf(X,Y) & onproperty(Y,A) & hasValue(Y,O) & onproperty(X,A) & maxCardinality(X,"1") & 
-		fromTarDataset(S, rdftype, X) & fromTarDataset(S, A, O) & fromSrcDataset(S, A, N)) >> isSame(O,N), weight : 5;
-	m.add rule : (subclassOf(X,Y) & onproperty(Y,A) & hasValue(Y,O) & onproperty(X,A) & maxCardinality(X,"1") & fromTarDataset(S, rdftype, X) & 
-		fromDataset(M, same, O) & fromSrcDataset(S, A, M) & fromTarDataset(S, A, N)) >> relatedTo(S, A, M), weight : 8;
-	m.add rule : (subclassOf(X,Y) & onproperty(Y,A) & hasValue(Y,O) & onproperty(X,A) & maxCardinality(X,"1") & fromTarDataset(S, rdftype, X) & 
-		fromDataset(M, same, O) & fromTarDataset(S, A, M) & fromSrcDataset(S, A, N)) >> relatedTo(S, A, M), weight : 8;
-
-	//functional property
-	//5.1
-	m.add rule : (funProperty(A) & fromSrcDataset(S, A, N) & fromTarDataset(S, A, O)) >> isSame(N,O), weight : 5;
-
-	//disjoint classes
-	//6.1
-	m.add rule : (ndisjointfrom(N,O) & fromSrcDataset(S, A, N) & fromTarDataset(S, A, O)) >> relatedTo(S, A, N), weight : 10;
-	m.add rule : (ndisjointfrom(N,O) & fromSrcDataset(S, A, N) & fromTarDataset(S, A, O)) >> relatedTo(S, A, O), weight : 10;
 
 	//6.2
-	m.add rule : (ndisjointfrom(X,Z) & eqvclass(Y,Z) & fromSrcDataset(S, A, Y) & fromTarDataset(S, A, X)) >> relatedTo(S, A, Y), weight : 10;
-	m.add rule : (ndisjointfrom(X,Z) & eqvclass(Y,Z) & fromSrcDataset(S, A, Y) & fromTarDataset(S, A, X)) >> relatedTo(S, A, X), weight : 10;
-	m.add rule : (ndisjointfrom(X,Z) & eqvclass(Y,Z) & fromTarDataset(S, A, Y) & fromSrcDataset(S, A, X)) >> relatedTo(S, A, Y), weight : 10;
-	m.add rule : (ndisjointfrom(X,Z) & eqvclass(Y,Z) & fromTarDataset(S, A, Y) & fromSrcDataset(S, A, X)) >> relatedTo(S, A, X), weight : 10;
-*/
+
 	//equivalent property
 	//7.1
 	m.add rule : (eqvproperty(A,B,UID) & fromDataset(S, A, N) & fromSrcDataset(S, B, N) & fromTarDataset(S, B, O) & nsame(N,O)) >> relatedTo(S, B, N), weight : weightMap["ep1"];	
 	m.add rule : (eqvproperty(A,B,UID) & fromDataset(S, A, N) & fromTarDataset(S, B, N) & fromSrcDataset(S, B, O) & nsame(N,O)) >> relatedTo(S, B, N), weight : weightMap["ep2"];	
 	m.add rule : (eqvproperty(A,B,UID) & fromDataset(S, A, N) & fromSrcDataset(S, B, M) & fromTarDataset(S, B, O) & nsame(N,M) & nsame(N,O) & nsame(M,O)) >> relatedTo(S, B, N), weight : weightMap["ep3"];		
 	m.add rule : (eqvproperty(A,B,UID) & fromDataset(S, A, N) & fromTarDataset(S, B, M) & fromSrcDataset(S, B, O) & nsame(N,M) & nsame(N,O) & nsame(M,O)) >> relatedTo(S, B, N), weight : weightMap["ep4"];	
-
-/*
-	//7.3
-	m.add rule : (eqvproperty(C,B) & subpropertyOf(A,B) & fromDataset(S, C, N) & fromSrcDataset(S, A, N) 
-		& fromTarDataset(S, A, O)) >> relatedTo(S, A, N), weight : 10;
-	m.add rule : (eqvproperty(C,B) & subpropertyOf(A,B) & fromDataset(S, C, N) & fromTarDataset(S, A, N) 
-		& fromSrcDataset(S, A, O)) >> relatedTo(S, A, N), weight : 10;
-	m.add rule : (eqvproperty(C,B) & subpropertyOf(A,B) & fromDataset(S, C, N) & fromSrcDataset(S, A, M) 
-		& fromTarDataset(S, A, O)) >> relatedTo(S, A, N), weight : 10;
-	m.add rule : (eqvproperty(C,B) & subpropertyOf(A,B) & fromDataset(S, C, N) & fromTarDataset(S, A, M) 
-		& fromSrcDataset(S, A, O)) >> relatedTo(S, A, N), weight : 10;
+	
+	//7.2
+	m.add rule : (eqvproperty(C,B,UID) & subpropertyOf(A,B,UID1) & fromDataset(S, C, N) & fromSrcDataset(S, A, N) 
+		& fromTarDataset(S, A, O)) >> relatedTo(S, A, N), weight : weightMap["ep5"];	// & nsame(N,O)
+	m.add rule : (eqvproperty(C,B,UID) & subpropertyOf(A,B,UID1) & fromDataset(S, C, N) & fromTarDataset(S, A, N) 
+		& fromSrcDataset(S, A, O)) >> relatedTo(S, A, N), weight : weightMap["ep6"];
+	m.add rule : (eqvproperty(C,B,UID) & subpropertyOf(A,B,UID1) & fromDataset(S, C, N) & fromSrcDataset(S, A, M) 
+		& fromTarDataset(S, A, O)) >> relatedTo(S, A, N), weight : weightMap["ep7"];
+	m.add rule : (eqvproperty(C,B,UID) & subpropertyOf(A,B,UID1) & fromDataset(S, C, N) & fromTarDataset(S, A, M) 
+		& fromSrcDataset(S, A, O)) >> relatedTo(S, A, N), weight : weightMap["ep8"];
 
 	//same resources
-	//8.1 (can be used in combination with other rules)
-	m.add rule : (sameas(S1,S) & fromDataset(S1, A, N) & fromSrcDataset(S, A, N) & fromTarDataset(S, A, O)) >> relatedTo(S, A, N), weight : 10;
-	m.add rule : (sameas(S1,S) & fromDataset(S1, A, N) & fromTarDataset(S, A, N) & fromSrcDataset(S, A, O)) >> relatedTo(S, A, N), weight : 10;
-	m.add rule : (sameas(S1,S) & fromDataset(S1, A, N) & fromSrcDataset(S, A, M) & fromTarDataset(S, A, O)) >> relatedTo(S, A, N), weight : 10;
-	m.add rule : (sameas(S1,S) & fromDataset(S1, A, N) & fromTarDataset(S, A, M) & fromSrcDataset(S, A, O)) >> relatedTo(S, A, N), weight : 10;
+	m.add rule : (fromSrcDataset(S, A, N) & fromTarDataset(S, A, O) & sameas(N,O)) >> relatedTo(S, A, N), weight : weightMap["sa1"];
+	m.add rule : (fromDataset(S, A, N) & fromSrcDataset(S, A, O) & sameas(N,O)) >> relatedTo(S, A, O), weight : weightMap["sa2"];
+	m.add rule : (fromDataset(S, A, N) & fromTarDataset(S, A, O) & sameas(N,O)) >> relatedTo(S, A, O), weight : weightMap["sa3"];
 	
-	//8.2
-	m.add rule : (difffrom(M, O) & fromSrcDataset(S, A, M) & fromTarDataset(S, A, O)) >> relatedTo(S, A, M), weight : 10;
-	m.add rule : (difffrom(M, O) & fromSrcDataset(S, A, M) & fromTarDataset(S, A, O)) >> relatedTo(S, A, O), weight : 10;
-	m.add rule : (difffrom(M, O) & fromTarDataset(S, A, M) & fromSrcDataset(S, A, O)) >> relatedTo(S, A, M), weight : 10;
-	m.add rule : (difffrom(M, O) & fromTarDataset(S, A, M) & fromSrcDataset(S, A, O)) >> relatedTo(S, A, O), weight : 10;
-*/
+	//8.1 (can be used in combination with other rules??)
+	m.add rule : (fromDataset(T, A, N) & fromSrcDataset(S, A, N) & fromTarDataset(S, A, O) & sameas(T,S)) >> relatedTo(S, A, N), weight : weightMap["sa4"];
+	m.add rule : (fromDataset(T, A, N) & fromTarDataset(S, A, N) & fromSrcDataset(S, A, O) & sameas(T,S)) >> relatedTo(S, A, N), weight : weightMap["sa5"];
+	m.add rule : (fromDataset(T, A, N) & fromSrcDataset(S, A, M) & fromTarDataset(S, A, O) & sameas(T,S)) >> relatedTo(S, A, N), weight : weightMap["sa6"];
+	m.add rule : (fromDataset(T, A, N) & fromTarDataset(S, A, M) & fromSrcDataset(S, A, O) & sameas(T,S)) >> relatedTo(S, A, N), weight : weightMap["sa7"];
+	
+	//subproperty - can also be for literal object values
 	//9.1
-	//subproperty
-	m.add rule : (subpropertyOf(A,B,UID) & fromDataset(S, B, N) & fromSrcDataset(S, A, N) & fromTarDataset(S, A, O) & nsame(N,O)) >> relatedTo(S, A, N), weight : 10;
-	m.add rule : (subpropertyOf(A,B,UID) & fromDataset(S, B, N) & fromTarDataset(S, A, N) & fromSrcDataset(S, A, O) & nsame(N,O)) >> relatedTo(S, A, N), weight : 10;
-	m.add rule : (subpropertyOf(A,B,UID) & fromDataset(S, B, N) & fromSrcDataset(S, A, M) & fromTarDataset(S, A, O) & nsame(N,M) & nsame(N,O) & nsame(M,O)) >> relatedTo(S, A, N), weight : 10;
-	m.add rule : (subpropertyOf(A,B,UID) & fromDataset(S, B, N) & fromTarDataset(S, A, M) & fromSrcDataset(S, A, O) & nsame(N,M) & nsame(N,O) & nsame(M,O)) >> relatedTo(S, A, N), weight : 10;
+	m.add rule : (subpropertyOf(A,B,UID) & fromDataset(S, B, N) & fromSrcDataset(S, A, N) & fromTarDataset(S, A, O) & nsame(N,O)) >> relatedTo(S, A, N), weight : weightMap["sp1"];
+	m.add rule : (subpropertyOf(A,B,UID) & fromDataset(S, B, N) & fromTarDataset(S, A, N) & fromSrcDataset(S, A, O) & nsame(N,O)) >> relatedTo(S, A, N), weight : weightMap["sp2"];
+	m.add rule : (subpropertyOf(A,B,UID) & fromDataset(S, B, N) & fromSrcDataset(S, A, M) & fromTarDataset(S, A, O) & nsame(N,M) & nsame(N,O) & nsame(M,O)) >> relatedTo(S, A, N), weight : weightMap["sp3"];
+	m.add rule : (subpropertyOf(A,B,UID) & fromDataset(S, B, N) & fromTarDataset(S, A, M) & fromSrcDataset(S, A, O) & nsame(N,M) & nsame(N,O) & nsame(M,O)) >> relatedTo(S, A, N), weight : weightMap["sp4"];
+
+	// diff from
+	//10.2	
+	m.add rule : (subpropertyOf(A,B,UID) & fromDataset(S, B, N) & fromSrcDataset(S, A, N) & fromTarDataset(S, A, O) & diffrom(N,O)) >> relatedTo(S, A, N), weight : weightMap["df1"];
+	m.add rule : (subpropertyOf(A,B,UID) & fromDataset(S, B, N) & fromTarDataset(S, A, N) & fromSrcDataset(S, A, O) & diffrom(N,O)) >> relatedTo(S, A, N), weight : weightMap["df2"];
+	m.add rule : (subpropertyOf(A,B,UID) & fromDataset(S, B, N) & fromSrcDataset(S, A, M) & fromTarDataset(S, A, O) & diffrom(N,M) & diffrom(N,O) & diffrom(M,O)) >> relatedTo(S, A, N), weight : weightMap["df3"];
+	m.add rule : (subpropertyOf(A,B,UID) & fromDataset(S, B, N) & fromTarDataset(S, A, M) & fromSrcDataset(S, A, O) & diffrom(N,M) & diffrom(N,O) & diffrom(M,O)) >> relatedTo(S, A, N), weight : weightMap["df4"];
+	//10.3
+	m.add rule : (eqvproperty(A,B,UID) & fromDataset(S, A, N) & fromSrcDataset(S, B, N) & fromTarDataset(S, B, O) & diffrom(N,O)) >> relatedTo(S, B, N), weight : weightMap["df5"];
+	m.add rule : (eqvproperty(A,B,UID) & fromDataset(S, A, N) & fromTarDataset(S, B, N) & fromSrcDataset(S, B, O) & diffrom(N,O)) >> relatedTo(S, B, N), weight : weightMap["df6"];
+	m.add rule : (eqvproperty(A,B,UID) & fromDataset(S, A, N) & fromSrcDataset(S, B, M) & fromTarDataset(S, B, O) & diffrom(N,M) & diffrom(N,O) & diffrom(M,O)) >> relatedTo(S, B, N), weight : weightMap["df7"];
+	m.add rule : (eqvproperty(A,B,UID) & fromDataset(S, A, N) & fromTarDataset(S, B, M) & fromSrcDataset(S, B, O) & diffrom(N,M) & diffrom(N,O) & diffrom(M,O)) >> relatedTo(S, B, N), weight : weightMap["df8"];
 
 	// constraints
 	m.add PredicateConstraint.PartialFunctional , on : type;
@@ -352,7 +263,7 @@ def create_rules (m, weightMap) {
 //////////////////////////////populate/////////////////////////////////////////
 
 /* Populates all the type atoms using the triple and domainOf predicates. */
-	def populateType(Database db, String [] datasets) {
+	def populateType(Database db, String [] datasets, LoadData l, LoadOntology lont) {
 		
 		Set<GroundTerm> s1 = new HashSet<GroundTerm>();
 		Set<GroundTerm> s2 = new HashSet<GroundTerm>();
@@ -382,14 +293,12 @@ def create_rules (m, weightMap) {
 			res_set.add(res.toString());
 			}
 		
-			
 			Set<GroundAtom> ds = Queries.getAllAtoms(db, fromDataset);
 			Set<GroundAtom> src = Queries.getAllAtoms(db, fromSrcDataset);
 			Set<GroundAtom> tar = Queries.getAllAtoms(db, fromTarDataset);
 	
 		Set<GroundAtom> belongsto0 = Queries.getAllAtoms(db, domainOf);
-		Set<GroundAtom> belongsto1 = Queries.getAllAtoms(db, rangeOf);
-	
+		Set<GroundAtom> belongsto1 = Queries.getAllAtoms(db, rangeOf);	
 	
 		for (GroundAtom atom : ds) {
 			GroundTerm term = atom.getArguments()[0];
@@ -399,6 +308,14 @@ def create_rules (m, weightMap) {
 				
 			term = atom.getArguments()[2];
 			value = term.getValue();
+			
+			Resource x = l.model.getResource(value);
+			if (x!=null) {
+				OntClass sc = lont.omodel.getOntClass(x.toString());
+				if (sc!=null)
+					s2.add(term);
+			}
+
 			if (res_set.contains(value))
 				s1.add(term);
 		}
@@ -410,6 +327,12 @@ def create_rules (m, weightMap) {
 				
 			term = atom.getArguments()[2];
 			value = term.getValue();
+			Resource x = l.model.getResource(value);
+			if (x!=null) {
+				OntClass sc = lont.omodel.getOntClass(x.toString());
+				if (sc!=null)
+					s2.add(term);
+			}
 			if (res_set.contains(value))
 				s1.add(term);
 		}
@@ -421,6 +344,12 @@ def create_rules (m, weightMap) {
 				
 			term = atom.getArguments()[2];
 			value = term.getValue();
+			Resource x = l.model.getResource(value);
+			if (x!=null) {
+				OntClass sc = lont.omodel.getOntClass(x.toString());
+				if (sc!=null)
+					s2.add(term);
+			}
 			if (res_set.contains(value))
 				s1.add(term);
 		}
