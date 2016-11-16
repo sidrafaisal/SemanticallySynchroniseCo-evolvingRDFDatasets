@@ -27,7 +27,15 @@ import org.apache.jena.util.FileManager;
 
 public class LoadRules {
 
-	def createModel (r, data, weightMap) {
+	private static Model model, smodel, tmodel;
+	String dir;
+	
+	def createModel (r, data, weightMap, d, mod, smod, tmod) {
+		dir = d;
+		model = mod;
+		smodel = smod;
+		tmodel = tmod;
+		
 		PSLModel m = new PSLModel(this, data);
 		loadPredicates(m);
 		String rdftype = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type",

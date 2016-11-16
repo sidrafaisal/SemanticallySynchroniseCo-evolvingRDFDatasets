@@ -24,16 +24,14 @@ DataStore data = new RDBMSDataStore(new H2DatabaseDriver(Type.Disk, dbpath, true
 String dir = "data"+java.io.File.separator+"deductive-reasoning"+java.io.File.separator;
 
 //////////////////////////model setup ////////////////////////
-InferenceUtils r = new InferenceUtils();
-
-Map<String, Double> weightMap = r.readweights("weights.txt");
-PSLModel m = new LoadRules().createModel(r, data, weightMap);
-
 String [] datasets = ["slice", "srcChanges", "tarChanges", "dbpedia_2014.owl", "NT"];
 LoadData l = new LoadData(dir, datasets); // to find e.g. sameAs and difffrom info
 LoadOntology lont = new LoadOntology(datasets[0], datasets[4]);
 lont.populateFiles(datasets[3], dir);
 
+InferenceUtils r = new InferenceUtils();
+Map<String, Double> weightMap = r.readweights("weights.txt");
+PSLModel m = new LoadRules().createModel(r, data, weightMap, dir, l.model, l.smodel, l.tmodel);
 ////////////////////////////learning and inference ///////////////////////
 RunInference d = new RunInference(m);
 d.learn(r, m, data, dir, config, datasets, l, lont);

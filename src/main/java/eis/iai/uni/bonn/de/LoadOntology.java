@@ -46,7 +46,7 @@ import groovy.time.TimeCategory;
 import groovy.time.TimeDuration;
 public class LoadOntology  {
 
-	private static Model model ;
+	private static Model model;
 	private static String ont_filename;
 	private static String trainDir;
 	private static String testDir;
