@@ -1,0 +1,5 @@
+<http://dbpedia.org/resource/Changampuzha_Krishna_Pillai> <http://dbpedia.org/ontology/jureLanguage> <http://dbpedia.org/resource/Malay_language> .
+<http://dbpedia.org/resource/Changampuzha_Krishna_Pillai> <http://dbpedia.org/ontology/originalLanguage> <http://dbpedia.org/resource/Malay_language> .
+<http://dbpedia.org/resource/Changampuzha_Krishna_Pillai> <http://schema.org/inLanguage> <http://dbpedia.org/resource/Malay_language> .
+<http://wikidata.org/entity/Q2956035> <http://dbpedia.org/ontology/language> <http://dbpedia.org/resource/Malay_language> .
+<http://dbpedia.org/resource/Adiyozhukkukal> <http://dbpedia.org/ontology/writer> <http://viaf.org/viaf/59908756> .
