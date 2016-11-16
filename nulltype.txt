@@ -1,3 +1,0 @@
-http://dbpedia.org/resource/Sidra	http://dbpedia.org/ontology/Person	1
-http://dbpedia.org/resource/SidraAslam	http://dbpedia.org/ontology/Person	1
-http://dbpedia.org/resource/Faisal	http://dbpedia.org/ontology/Person	1
