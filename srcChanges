@@ -1,5 +1,0 @@
-<http://dbpedia.org/resource/Fernando_Pessoa> <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <http://dbpedia.org/ontology/Person> .
-<http://dbpedia.org/resource/Janet_Biehl> <http://dbpedia.org/ontology/originalLanguage> <http://dbpedia.org/resource/North_American_English> .
-<http://dbpedia.org/resource/Janet_Biehl> <http://dbpedia.org/ontology/jureLanguage> <http://dbpedia.org/resource/North_American_English> .
-<http://dbpedia.org/resource/Fernando> <http://dbpedia.org/ontology/wikiPageDisambiguates> <http://yago-knowledge.org/resource/Fernando_Pessoa> .
-<http://dbpedia.org/resource/Fernando> <http://dbpedia.org/ontology/wikiPageDisambiguates> <http://dbpedia.org/resource/Fernando_Pessoa> .

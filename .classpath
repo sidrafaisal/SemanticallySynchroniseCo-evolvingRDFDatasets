@@ -14,7 +14,6 @@
 	<classpathentry kind="var" path="M2_REPO/edu/emory/mathcs/csparsej/1.0/csparsej-1.0.jar"/>
 	<classpathentry kind="var" path="M2_REPO/org/codehaus/groovy/groovy-all/2.3.7/groovy-all-2.3.7.jar"/>
 	<classpathentry kind="var" path="M2_REPO/org/codehaus/groovy/groovy-eclipse-batch/2.3.7-01/groovy-eclipse-batch-2.3.7-01.jar"/>
-	<classpathentry kind="var" path="M2_REPO/com/google/guava/guava/r09/guava-r09.jar"/>
 	<classpathentry kind="var" path="M2_REPO/com/h2database/h2/1.2.126/h2-1.2.126.jar"/>
 	<classpathentry kind="var" path="M2_REPO/joda-time/joda-time/2.8.1/joda-time-2.8.1.jar"/>
 	<classpathentry kind="var" path="M2_REPO/edu/emory/mathcs/jplasma/1.2/jplasma-1.2.jar"/>
@@ -48,7 +47,6 @@
 	<classpathentry kind="lib" path="/Users/sidrafaisal/Documents/Sidra/Data/co-evo_lib/commons-csv-1.0.jar"/>
 	<classpathentry kind="lib" path="/Users/sidrafaisal/Documents/Sidra/Data/co-evo_lib/commons-lang-2.3.jar"/>
 	<classpathentry kind="lib" path="/Users/sidrafaisal/Documents/Sidra/Data/co-evo_lib/commons-lang3-3.3.2.jar"/>
-	<classpathentry kind="lib" path="/Users/sidrafaisal/Documents/Sidra/Data/co-evo_lib/guava-17.0.jar"/>
 	<classpathentry kind="lib" path="/Users/sidrafaisal/Documents/Sidra/Data/co-evo_lib/guice-4.0.jar"/>
 	<classpathentry kind="lib" path="/Users/sidrafaisal/Documents/Sidra/Data/co-evo_lib/httpclient-4.2.6.jar"/>
 	<classpathentry kind="lib" path="/Users/sidrafaisal/Documents/Sidra/Data/co-evo_lib/httpclient-cache-4.2.6.jar"/>
@@ -82,5 +80,6 @@
 	<classpathentry kind="lib" path="/Users/sidrafaisal/Documents/Sidra/Data/co-evo_lib/trove4j-3.0.3.jar"/>
 	<classpathentry kind="lib" path="/Users/sidrafaisal/Documents/Sidra/Data/co-evo_lib/xercesImpl-2.11.0.jar"/>
 	<classpathentry kind="lib" path="/Users/sidrafaisal/Documents/Sidra/Data/co-evo_lib/xml-apis-1.4.01.jar"/>
+	<classpathentry kind="lib" path="/Users/sidrafaisal/Documents/workspace/GS_SemSynCoEvoDs/CG_lib/guava-17.0.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>

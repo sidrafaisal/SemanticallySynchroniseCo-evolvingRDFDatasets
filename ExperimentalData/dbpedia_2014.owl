@@ -30550,7 +30550,7 @@
     <rdfs:domain rdf:resource="http://dbpedia.org/ontology/Spacecraft"/>
     <rdfs:range rdf:resource="http://dbpedia.org/datatype/day"/>
   </owl:DatatypeProperty>
-<owl:InverseFunctionalProperty rdf:ID="biologicalMotherOf">
+<owl:InverseFunctionalProperty rdf:about="biologicalMotherOf">
   <rdfs:domain rdf:resource="#Woman"/>
   <rdfs:range rdf:resource="#Human"/>
 </owl:InverseFunctionalProperty>
